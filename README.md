@@ -28,8 +28,8 @@ sudo apt install nginx
 #insert following configuration into http section
 
  upstream myproject {
-    server Web1 weight=5;
-    server Web2 weight=5;
+    server Webserver1 weight=5;
+    server Webserver2 weight=5;
   }
 
 server {
@@ -50,5 +50,67 @@ server {
 sudo systemctl restart nginx
 sudo systemctl status nginx
 ``````
+##  2. We will get a new domain name and configure secured connection using SSL/TLS certificates
 
+- Register a new domain name with any registrar of your choice in any domain zone (e.g. .com, .net, .org, .edu, .info, .xyz or any other)
 
+- Create a hosted zone add the records as shown below.
+
+- Update A record in your registrar to point to Nginx LB using Elastic IP address or public IP of the Nginx load balancer.
+
+![hosted zone](./images/hosted%20zone%20and%20records.PNG)
+
+- Check that your Web Servers can be reached from your browser using new domain name using HTTP protocol – http://<your-domain-name.com>
+
+- Configure Nginx to recognize your new domain name
+
+- Update your nginx.conf with server_name www.<your-domain-name.com> instead of server_name www.domain.com
+
+- Install certbot and request for an SSL/TLS certificate
+
+- Make sure snapd service is active and running
+
+    `sudo systemctl status snapd`
+
+- Install certbot
+
+    `sudo snap install --classic certbot`
+
+- Request your certificate (just follow the certbot instructions – you will need to choose which domain you want your certificate to be issued for, domain name will be looked up from nginx.conf file so make sure you have updated it on step 4).
+
+``````
+sudo ln -s /snap/bin/certbot /usr/bin/certbot
+sudo certbot --nginx
+``````
+
+- Test secured access to your Web Solution by trying to reach https://<your-domain-name.com>
+
+![SSL/TLS](./images/TLS-SSL.png)
+
+- Set up periodical renewal of your SSL/TLS certificate
+
+- By default, LetsEncrypt certificate is valid for 90 days, so it is recommended to renew it at least every 60 days or more frequently.  You can test renewal command in dry-run mode
+
+    `sudo certbot renew --dry-run`
+
+- Best practice is to have a scheduled job that to run renew command periodically. Let us configure a cronjob to run the command twice a day.
+
+- To do so, lets edit the crontab file with the following command:
+
+    `crontab -e`
+
+- to see list of cron jobs
+
+    `crontab -l`
+
+- Add following line on edit.
+
+    `* */12 * * *   root /usr/bin/certbot renew > /dev/null 2>&1`
+
+``````
+*--minutes
+*/12--hours (runs after every 12 hours)
+*--day
+*--month
+*--SUN MON TUE etc
+``````
